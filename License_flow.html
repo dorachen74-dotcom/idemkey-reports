@@ -1,0 +1,393 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>License 自動化架構</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #F6F5F1;
+  --surface: #FFFFFF;
+  --ink: #1C1F26;
+  --muted: #6B7280;
+  --line: #D9D6CE;
+  --accent: #2F5BEA;
+  --ok: #1F8A5B;
+  --bad: #C23B3B;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14161B;
+    --surface: #1D2028;
+    --ink: #E8E9ED;
+    --muted: #9AA0AC;
+    --line: #2E333D;
+    --accent: #7C9CFF;
+    --ok: #4FC08D;
+    --bad: #FF7A7A;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #14161B;
+  --surface: #1D2028;
+  --ink: #E8E9ED;
+  --muted: #9AA0AC;
+  --line: #2E333D;
+  --accent: #7C9CFF;
+  --ok: #4FC08D;
+  --bad: #FF7A7A;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+  line-height: 1.55;
+  padding-block: 28px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1040px; margin: 0 auto; }
+
+header { margin-bottom: 20px; }
+.eyebrow { margin: 0; font-size: 12px; letter-spacing: .08em; color: var(--muted); text-transform: uppercase; }
+h1 { margin: 4px 0 8px; font-size: 26px; text-wrap: balance; }
+.lede { margin: 0; color: var(--muted); max-width: 64ch; }
+
+.controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 16px; }
+button {
+  font: inherit; font-weight: 500; font-size: 14px;
+  padding: 9px 16px; border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--accent); background: var(--accent); color: #fff;
+}
+button.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+#status { font-size: 13px; color: var(--muted); margin-left: 4px; }
+
+.diagram {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  padding: 12px; overflow-x: auto;
+}
+.diagram svg { display: block; width: 100%; min-width: 720px; height: auto; }
+.node rect { fill: var(--bg); stroke: var(--line); stroke-width: 1.5; transition: stroke .3s, fill .3s; }
+.node .t { fill: var(--ink); font-size: 16px; font-weight: 700; }
+.node .s { fill: var(--muted); font-size: 12px; }
+.node.on rect { stroke: var(--accent); stroke-width: 2.5; fill: var(--surface); animation: pulse 1.4s ease-in-out infinite; }
+.node.done rect { stroke: var(--ok); }
+.node.bad rect { stroke: var(--bad); stroke-width: 2.5; fill: var(--surface); }
+.node.bad .t { fill: var(--bad); }
+@keyframes pulse {
+  0%, 100% { filter: none; }
+  50% { filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 55%, transparent)); }
+}
+
+.edge { fill: none; stroke: var(--line); stroke-width: 2; marker-end: url(#arrN); transition: stroke .3s; }
+.edge.cond { stroke-dasharray: 6 6; }
+.edge.fail { stroke: var(--bad); stroke-dasharray: 6 6; marker-end: url(#arrBad); }
+.edge.done { stroke: var(--ok); marker-end: url(#arrOk); }
+.edge.on { stroke: var(--accent); stroke-width: 2.5; marker-end: url(#arrOn); stroke-dasharray: 10 6; animation: dash 0.9s linear infinite; }
+.edge.on.fail { stroke: var(--bad); marker-end: url(#arrBad); }
+@keyframes dash { to { stroke-dashoffset: -32; } }
+.packet { fill: var(--accent); opacity: 0; }
+.edge.on + .packet { opacity: 1; }
+.edge.fail.on + .packet { fill: var(--bad); }
+.edge-label { fill: var(--muted); font-size: 12px; }
+.edge-label.step { fill: var(--ink); font-weight: 700; }
+.mk path { fill: var(--muted); }
+.mk-on path { fill: var(--accent); }
+.mk-ok path { fill: var(--ok); }
+.mk-bad path { fill: var(--bad); }
+
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; min-width: 0; }
+h2 { margin: 0 0 12px; font-size: 15px; letter-spacing: .02em; }
+ol { margin: 0; padding: 0; list-style: none; }
+li.step-item {
+  display: grid; grid-template-columns: 28px 1fr; gap: 10px;
+  padding: 9px 0; border-top: 1px solid var(--line); color: var(--muted);
+  transition: color .3s;
+}
+li.step-item:first-child { border-top: 0; }
+li.step-item .num {
+  width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center;
+  font-size: 12px; font-weight: 700; border: 1px solid var(--line); color: var(--muted);
+}
+li.step-item strong { display: block; color: var(--ink); font-weight: 500; }
+li.step-item.current .num { border-color: var(--accent); color: var(--accent); }
+li.step-item.current strong { color: var(--accent); }
+li.step-item.done .num { border-color: var(--ok); color: var(--ok); }
+li.step-item.fail .num, li.step-item.fail strong { border-color: var(--bad); color: var(--bad); }
+li.step-item small { font-size: 13px; }
+
+pre {
+  margin: 0 0 18px; min-height: 120px; padding: 12px; border-radius: 10px;
+  background: var(--bg); border: 1px solid var(--line);
+  font: 12.5px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
+  white-space: pre-wrap; overflow-x: auto; color: var(--ink);
+}
+.teams { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.teams[hidden] { display: none; }
+.tc-head { padding: 12px 14px; font-weight: 700; border-bottom: 1px solid var(--line); }
+.tc-head.ok { color: var(--ok); }
+.tc-head.fail { color: var(--bad); }
+.teams dl { margin: 0; padding: 12px 14px; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 7px 14px; font-size: 13px; }
+.teams dt { color: var(--muted); }
+.teams dd { margin: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.note { margin: 14px 0 0; font-size: 12px; color: var(--muted); }
+
+@media (max-width: 760px) {
+  .grid { grid-template-columns: 1fr; }
+  h1 { font-size: 22px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .packet { display: none; }
+  .edge.on, .node.on rect { animation: none; }
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">GoTrust License 自動化</p>
+    <h1>從信件到 Teams 通知</h1>
+    <p class="lede">每小時自動讀取 license 申請信，產生授權檔、上傳 SharePoint、需要時更新 DNS，最後把結果送到 Teams。按「播放流程」即可看整個過程。</p>
+    <div class="controls">
+      <button id="play" type="button">▶ 播放流程</button>
+      <button id="fail" class="ghost" type="button">模擬失敗</button>
+      <button id="reset" class="ghost" type="button">重設</button>
+      <span id="status">待命</span>
+    </div>
+  </header>
+
+  <section class="diagram" aria-label="系統架構與資料流">
+    <svg viewBox="0 0 1000 480" role="img" aria-label="launchd 排程觸發 Python 批次，批次讀取 Outlook 信件、呼叫 JAR 產生授權檔、上傳 SharePoint、視條件更新 Namecheap DNS，最後送出 Teams 通知；失敗時直接送出 Teams 告警">
+      <defs>
+        <marker id="arrN" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk" d="M0,0 L10,5 L0,10 z"/></marker>
+        <marker id="arrOn" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-on" d="M0,0 L10,5 L0,10 z"/></marker>
+        <marker id="arrOk" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-ok" d="M0,0 L10,5 L0,10 z"/></marker>
+        <marker id="arrBad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-bad" d="M0,0 L10,5 L0,10 z"/></marker>
+      </defs>
+
+      <!-- edges: path first, packet circle immediately after -->
+      <path id="e1" class="edge" d="M250,110 C320,110 300,235 370,235"/>
+      <circle class="packet" r="5"><animateMotion dur="1.6s" repeatCount="indefinite"><mpath href="#e1"/></animateMotion></circle>
+
+      <path id="e2" class="edge" d="M370,265 C300,300 300,390 250,390"/>
+      <circle class="packet" r="5"><animateMotion dur="1.6s" repeatCount="indefinite"><mpath href="#e2"/></animateMotion></circle>
+
+      <path id="e3" class="edge" d="M570,232 C630,200 640,110 690,110"/>
+      <circle class="packet" r="5"><animateMotion dur="1.6s" repeatCount="indefinite"><mpath href="#e3"/></animateMotion></circle>
+
+      <path id="e4" class="edge" d="M790,146 L790,214"/>
+      <circle class="packet" r="5"><animateMotion dur="1.2s" repeatCount="indefinite"><mpath href="#e4"/></animateMotion></circle>
+
+      <path id="e5" class="edge cond" d="M790,286 L790,354"/>
+      <circle class="packet" r="5"><animateMotion dur="1.2s" repeatCount="indefinite"><mpath href="#e5"/></animateMotion></circle>
+
+      <path id="e6" class="edge" d="M690,410 L570,410"/>
+      <circle class="packet" r="5"><animateMotion dur="1.2s" repeatCount="indefinite"><mpath href="#e6"/></animateMotion></circle>
+
+      <path id="e7" class="edge fail" d="M470,286 L470,374"/>
+      <circle class="packet" r="5"><animateMotion dur="1.2s" repeatCount="indefinite"><mpath href="#e7"/></animateMotion></circle>
+
+      <!-- edge labels -->
+      <text class="edge-label" x="308" y="180">排程觸發</text>
+      <text class="edge-label" x="258" y="320">Graph 讀信</text>
+      <text class="edge-label" x="612" y="150">欄位對應後</text>
+      <text class="edge-label" x="800" y="184">上傳授權檔</text>
+      <text class="edge-label" x="800" y="324">Domain 為 ztapoc.vip</text>
+      <text class="edge-label" x="600" y="402">成功卡片</text>
+      <text class="edge-label" x="480" y="336">失敗 → 紅色卡片</text>
+
+      <!-- nodes -->
+      <g id="n1" class="node">
+        <rect x="50" y="74" width="200" height="72" rx="12"/>
+        <text class="t" x="150" y="104" text-anchor="middle">launchd 排程</text>
+        <text class="s" x="150" y="126" text-anchor="middle">每小時整點 · python3.14</text>
+      </g>
+      <g id="n2" class="node">
+        <rect x="370" y="214" width="200" height="72" rx="12"/>
+        <text class="t" x="470" y="244" text-anchor="middle">Python 批次處理</text>
+        <text class="s" x="470" y="266" text-anchor="middle">解析 → 去重 → 產生 → 上傳</text>
+      </g>
+      <g id="n3" class="node">
+        <rect x="50" y="354" width="200" height="72" rx="12"/>
+        <text class="t" x="150" y="384" text-anchor="middle">Outlook 信箱</text>
+        <text class="s" x="150" y="406" text-anchor="middle">MFA_License · Graph API</text>
+      </g>
+      <g id="n4" class="node">
+        <rect x="690" y="74" width="200" height="72" rx="12"/>
+        <text class="t" x="790" y="104" text-anchor="middle">License 產生器</text>
+        <text class="s" x="790" y="126" text-anchor="middle">JAR 2.4.0 + decode 驗證</text>
+      </g>
+      <g id="n5" class="node">
+        <rect x="690" y="214" width="200" height="72" rx="12"/>
+        <text class="t" x="790" y="244" text-anchor="middle">SharePoint</text>
+        <text class="s" x="790" y="266" text-anchor="middle">授權檔資料夾 · 去重依據</text>
+      </g>
+      <g id="n6" class="node">
+        <rect x="690" y="354" width="200" height="72" rx="12"/>
+        <text class="t" x="790" y="384" text-anchor="middle">Namecheap DNS</text>
+        <text class="s" x="790" y="406" text-anchor="middle">ztapoc.vip A record · 讀回核對</text>
+      </g>
+      <g id="n7" class="node">
+        <rect x="370" y="374" width="200" height="72" rx="12"/>
+        <text class="t" x="470" y="404" text-anchor="middle">Teams Workflows</text>
+        <text class="s" x="470" y="426" text-anchor="middle">成功卡片 / 失敗卡片</text>
+      </g>
+    </svg>
+  </section>
+
+  <div class="grid">
+    <section class="panel" aria-labelledby="h-steps">
+      <h2 id="h-steps">流程步驟</h2>
+      <ol id="steps"></ol>
+    </section>
+    <section class="panel" aria-labelledby="h-log">
+      <h2 id="h-log">執行紀錄</h2>
+      <pre id="log" aria-live="polite"></pre>
+      <h2>Teams 通知（範例）</h2>
+      <div id="card-ok" class="teams" hidden>
+        <div class="tc-head ok">✅ License 建立完成</div>
+        <dl>
+          <dt>Mail Subject</dt><dd>[身分license file]示範客戶</dd>
+          <dt>廠商名稱</dt><dd>demo</dd>
+          <dt>到期日</dt><dd>2027-12-31</dd>
+          <dt>MFA 數量</dt><dd>20</dd>
+          <dt>PC 數量</dt><dd>20</dd>
+          <dt>每帳號電腦數</dt><dd>15</dd>
+          <dt>授權網址</dt><dd>https://demo.ztapoc.vip</dd>
+          <dt>授權網域</dt><dd>demo.example.com</dd>
+          <dt>上傳資料夾</dt><dd>SharePoint · POC_License/示範客戶</dd>
+          <dt>DNS 記錄</dt><dd>新增 demo.ztapoc.vip → 203.0.113.10</dd>
+        </dl>
+      </div>
+      <div id="card-fail" class="teams" hidden>
+        <div class="tc-head fail">❌ License 處理失敗，需人工確認</div>
+        <dl>
+          <dt>Mail Subject</dt><dd>[身分license file]示範客戶</dd>
+          <dt>收件日期</dt><dd>2027-01-01</dd>
+          <dt>失敗原因</dt><dd>欄位不足：找不到 Domain URL</dd>
+        </dl>
+      </div>
+    </section>
+  </div>
+  <p class="note">所有客戶、網址與 IP 皆為示範用資料（IP 使用文件保留位址 203.0.113.0/24）。</p>
+</div>
+
+<script>
+const STEPS = [
+  { n: 'n1', t: '排程觸發', d: 'launchd 每小時整點執行批次程式', log: '[00:00] launchd → auto_license_from_email.py --subject "license file"' },
+  { n: 'n2', e: 'e1', t: '搜尋信件', d: 'Graph API 讀取 MFA_License 資料夾，逐封處理', log: '搜尋資料夾 MFA_License：找到 1 封「[身分license file]示範客戶」' },
+  { n: 'n3', e: 'e2', t: '讀取表格', d: '取出信件 HTML 表格，依欄位對應表轉成參數', log: '解析 12 個欄位，略過 3 個不相關欄位' },
+  { n: 'n2', t: '驗證與去重', d: '必要欄位檢查；比對本機紀錄與 SharePoint 既有檔案', log: '必要欄位齊全 ✓\n未處理過 ✓' },
+  { n: 'n4', e: 'e3', t: '產生並驗證', d: 'JAR 產生授權檔，decode 回讀比對到期日與數量', log: '產生 demo_license-20271231-20-20_auto.txt\ndecode 驗證：到期日 / MFA 20 / PC 20 ✓' },
+  { n: 'n5', e: 'e4', t: '上傳 SharePoint', d: '放進信件指定的授權檔資料夾，寫入本機紀錄', log: '上傳完成 → 授權檔資料夾 ✓' },
+  { n: 'n6', e: 'e5', t: '更新 DNS（條件）', d: 'Domain URL 屬於 ztapoc.vip 且信件有指向 IP 才執行', log: 'demo.ztapoc.vip → 203.0.113.10（新增）\n讀回核對 ✓　公網解析 ✓', cond: true },
+  { n: 'n7', e: 'e6', t: 'Teams 通知', d: '送出 Adaptive Card，內容含廠商、數量與連結', log: 'Teams 成功卡片已送出 ✓', card: 'ok' },
+];
+
+const FAIL_TAIL = [
+  { li: 3, n: 'n2', t: '驗證失敗', d: '欄位不足或讀取失敗，略過並通知', log: '欄位不足：找不到 Domain URL', fail: true },
+  { li: 7, n: 'n7', e: 'e7', t: '失敗告警', d: '紅色卡片說明原因；同一封信同原因只發一次', log: 'Teams 失敗卡片已送出', card: 'fail', fail: true },
+];
+
+const $ = (id) => document.getElementById(id);
+const stepsEl = $('steps');
+const logEl = $('log');
+const statusEl = $('status');
+let timers = [];
+
+STEPS.forEach((s, i) => {
+  const li = document.createElement('li');
+  li.className = 'step-item';
+  li.innerHTML = '<span class="num">' + (i + 1) + '</span><div><strong></strong><small></small></div>';
+  li.querySelector('strong').textContent = s.t;
+  li.querySelector('small').textContent = s.d;
+  stepsEl.appendChild(li);
+});
+
+function allNodesAndEdges() {
+  return document.querySelectorAll('.node, .edge');
+}
+
+function clearAll() {
+  allNodesAndEdges().forEach((el) => el.classList.remove('on', 'done', 'bad'));
+  stepsEl.querySelectorAll('li').forEach((li) => li.classList.remove('current', 'done', 'fail'));
+  logEl.textContent = '';
+  $('card-ok').hidden = true;
+  $('card-fail').hidden = true;
+}
+
+function stop() {
+  timers.forEach(clearTimeout);
+  timers = [];
+}
+
+function activate(step, index, failed) {
+  document.querySelectorAll('.node.on, .edge.on').forEach((el) => {
+    el.classList.remove('on');
+    el.classList.add('done');
+  });
+  const node = $(step.n);
+  node.classList.remove('done');
+  node.classList.add('on');
+  if (step.fail) node.classList.add('bad');
+  if (step.e) {
+    const edge = $(step.e);
+    edge.classList.remove('done');
+    edge.classList.add('on');
+    if (step.fail) edge.classList.add('fail');
+  }
+  const li = stepsEl.children[index];
+  if (li) {
+    li.classList.add(step.fail ? 'fail' : 'current');
+  }
+  logEl.textContent += (logEl.textContent ? '\n' : '') + step.log + '\n';
+  statusEl.textContent = '第 ' + (index + 1) + ' 步：' + step.t;
+  if (failed) statusEl.textContent = '失敗：' + step.t;
+}
+
+function finish(step, index) {
+  if (index !== undefined && stepsEl.children[index]) {
+    stepsEl.children[index].classList.remove('current');
+    stepsEl.children[index].classList.add(step.fail ? 'fail' : 'done');
+  }
+  document.querySelectorAll('.node.on, .edge.on').forEach((el) => {
+    el.classList.remove('on');
+    el.classList.add(el.classList.contains('fail') || el.classList.contains('bad') ? 'bad' : 'done');
+  });
+  if (step.card === 'ok') $('card-ok').hidden = false;
+  if (step.card === 'fail') $('card-fail').hidden = false;
+  statusEl.textContent = step.fail ? '流程結束：已送出失敗告警' : '流程完成：已送出 Teams 通知';
+}
+
+function run(failMode) {
+  stop();
+  clearAll();
+  const seq = failMode
+    ? STEPS.slice(0, 3).map((s, i) => ({ ...s, li: i })).concat(FAIL_TAIL)
+    : STEPS.map((s, i) => ({ ...s, li: i }));
+  let t = 0;
+  seq.forEach((step, i) => {
+    const last = i === seq.length - 1;
+    timers.push(setTimeout(() => {
+      activate(step, step.li, step.fail && !last);
+      if (last) timers.push(setTimeout(() => finish(step, step.li), 900));
+    }, t));
+    t += step.cond ? 1900 : 1400;
+  });
+}
+
+$('play').addEventListener('click', () => run(false));
+$('fail').addEventListener('click', () => run(true));
+$('reset').addEventListener('click', () => {
+  stop();
+  clearAll();
+  statusEl.textContent = '待命';
+});
+</script>
+
+</body></html>
