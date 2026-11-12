@@ -89,7 +89,7 @@
   <header>
     <div>
       <h1>下班測試：MCP 架構與自動化流程</h1>
-      <div class="sub">從一句話觸發，到 MCP 排程、實機測試、Slack 通知結果</div>
+      <div class="sub">從一句話觸發，到 MCP 排程、實機測試、Slack 通知，再到 AI 結合知識庫分析失敗、確認是 bug 才開 JIRA</div>
     </div>
     <button id="theme" aria-label="切換深淺色">深色／淺色</button>
   </header>
@@ -103,7 +103,8 @@
       <div class="dots" id="dots" aria-label="步驟"></div>
     </div>
 
-    <svg id="svg" viewBox="0 0 1280 700" role="img" aria-label="下班測試架構圖：觸發、MCP server、nightly runner、測試對象、報告與 Slack 通知">
+    <svg id="svg" viewBox="0 0 1280 930" role="img" aria-label="下班測試架構圖：觸發、MCP server、nightly runner、測試對象、報告與 Slack 通知">
+      <!-- column titles -->
       <text class="t-col" x="30" y="30">① 觸發</text>
       <text class="t-col" x="290" y="30">② MCP SERVER（gtid-qa）</text>
       <text class="t-col" x="680" y="30">③ 執行引擎</text>
@@ -111,6 +112,7 @@
       <text class="t-col" x="680" y="470">⑤ 報告</text>
       <text class="t-col" x="1000" y="470">⑥ 通知</text>
 
+      <!-- wires (drawn first, under nodes) -->
       <path id="w_slack_bot" class="wire" d="M200 130 H290"/>
       <path id="w_claude_mcp" class="wire" d="M200 290 H290"/>
       <path id="w_mcp_runner" class="wire" d="M600 250 H680"/>
@@ -122,8 +124,8 @@
       <path id="w_report_slack" class="wire slackw" d="M910 565 H1000"/>
       <path id="w_progress" class="wire slackw dash" d="M910 410 C 960 410 960 520 1000 540"/>
       <path id="w_report_mcp" class="wire dash" d="M680 600 H420 V480"/>
-      <path id="w_slack_user" class="wire slackw dash" d="M1140 660 V690 H15 V130 H30"/>
 
+      <!-- ① triggers -->
       <rect id="n_slack" class="node slack" x="30" y="90" width="170" height="80" rx="10"/>
       <text class="t-title" x="44" y="116">Slack 使用者</text>
       <text class="t-muted" x="44" y="136">@DoraTeam_AI</text>
@@ -138,6 +140,7 @@
       <text class="t-muted" x="30" y="406">與 Claude 共用同一支</text>
       <text class="t-muted" x="30" y="422">start_nightly() 函式</text>
 
+      <!-- ② MCP server -->
       <rect id="n_mcp" class="node" x="290" y="46" width="310" height="426" rx="12"/>
       <text class="t-title" x="306" y="72">gtid-qa MCP server</text>
       <text class="t-muted" x="306" y="90">FastMCP · 94 個 tool · 白名單＋token</text>
@@ -170,12 +173,14 @@
       <text x="318" y="437" style="font-weight:600">防護</text>
       <text class="t-muted" x="318" y="454">confirm 確認 · 資源鎖 · 偵測其他測試</text>
 
+      <!-- ③ runner -->
       <rect id="n_runner" class="node" x="680" y="150" width="230" height="270" rx="12"/>
       <text class="t-title" x="696" y="176">nightly_runner.py</text>
       <text class="t-muted" x="696" y="194">52 個 suite · 失敗最多重試 3 次</text>
       <g id="suiteChips"></g>
       <text class="t-muted" x="696" y="408" id="runnerStat">待命</text>
 
+      <!-- ④ targets -->
       <rect id="n_t1" class="node" x="1000" y="180" width="270" height="50" rx="10"/>
       <text class="t-title" x="1014" y="203">MFA Server</text>
       <text class="t-muted" x="1014" y="220">部署版本 · AdminPortal · 認證記錄</text>
@@ -197,6 +202,7 @@
       <text class="wlabel" x="918" y="309">RDP·SSH</text>
       <text class="wlabel" x="918" y="364">VNC·SSH</text>
 
+      <!-- ⑤ report -->
       <rect id="n_report" class="node" x="680" y="500" width="230" height="130" rx="12"/>
       <text class="t-title" x="696" y="526">結果與報告</text>
       <text class="t-muted" x="696" y="546">每個 suite 的 JSON 結果</text>
@@ -205,6 +211,7 @@
       <text class="t-muted" x="696" y="600">AdminPortal · RADIUS · macOS</text>
       <text class="t-muted" x="696" y="618">失敗的 suite 與 TC 一併列出</text>
 
+      <!-- ⑥ slack -->
       <rect id="n_slack_out" class="node slack" x="1000" y="490" width="270" height="170" rx="12"/>
       <text class="t-title" x="1014" y="516" style="fill:var(--slack)">Slack 頻道</text>
       <g id="msgs">
@@ -216,7 +223,46 @@
 
       <text class="wlabel" x="925" y="558">結果</text>
       <text class="wlabel" x="500" y="618">查詢報告</text>
-      <text class="wlabel" x="500" y="684">使用者在 Slack 看到結果</text>
+
+      <!-- ⑦ failure analysis & JIRA -->
+      <line x1="30" y1="702" x2="1270" y2="702" stroke="var(--line)" stroke-dasharray="3 6"/>
+      <text class="t-col" x="30" y="728">⑦ 失敗分析</text>
+      <text class="t-col" x="1000" y="728">⑧ 確認是 bug 才開單</text>
+
+      <path id="w_report_ai" class="wire dash" d="M795 630 V672 H150 V750"/>
+      <path id="w_ai_kb" class="wire" d="M270 815 H330"/>
+      <path id="w_kb_dec" class="wire" d="M590 815 H650"/>
+      <path id="w_dec_jira" class="wire" d="M910 815 H1000"/>
+
+      <rect id="n_ai" class="node" x="30" y="750" width="240" height="130" rx="12"/>
+      <text class="t-title" x="44" y="776">Claude 分析失敗</text>
+      <text class="t-muted" x="44" y="798">讀報告裡失敗的 suite 與 TC</text>
+      <text class="t-muted" x="44" y="816">撈服務 log、MFA Server log</text>
+      <text class="t-muted" x="44" y="834">對照截圖與環境狀態</text>
+      <text class="t-muted" x="44" y="860">不用人先翻 log</text>
+
+      <rect id="n_kb" class="node" x="330" y="750" width="260" height="130" rx="12"/>
+      <text class="t-title" x="344" y="776">gotrust-kb 知識庫（MCP）</text>
+      <text class="t-muted" x="344" y="798">lookup_error_code　錯誤碼</text>
+      <text class="t-muted" x="344" y="816">search_knowledge　FAQ／文件</text>
+      <text class="t-muted" x="344" y="834">get_setting／get_glossary</text>
+      <text class="t-muted" x="344" y="860">產品行為以 RD 確認內容為準</text>
+
+      <rect id="n_dec" class="node" x="650" y="750" width="260" height="130" rx="12"/>
+      <text class="t-title" x="664" y="776">判斷：環境，還是 bug？</text>
+      <rect id="p_env" class="chip" x="664" y="788" width="232" height="38" rx="8"/>
+      <text x="676" y="805" style="font-weight:600">環境問題</text>
+      <text class="t-muted" x="676" y="820">手機離線、網路　→ 只回報</text>
+      <rect id="p_bug" class="chip" x="664" y="832" width="232" height="38" rx="8"/>
+      <text x="676" y="849" style="font-weight:600">產品 bug</text>
+      <text class="t-muted" x="676" y="864">行為與預期不符　→ 開 JIRA</text>
+
+      <rect id="n_jira" class="node" x="1000" y="750" width="270" height="130" rx="12"/>
+      <text class="t-title" x="1014" y="776">JIRA（Atlassian MCP）</text>
+      <text class="t-muted" x="1014" y="798">建立 Bug：摘要、環境、重現步驟</text>
+      <text class="t-muted" x="1014" y="816">附 log 與截圖</text>
+      <text class="t-muted" x="1014" y="834">指派給 RD、CC 相關人員</text>
+      <text class="t-muted" x="1014" y="860">修好後再用同一批測試驗證</text>
     </svg>
 
     <div class="caption" aria-live="polite">
@@ -235,6 +281,7 @@
   const svg = $("#svg");
   const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+  // --- theme toggle ---
   $("#theme").addEventListener("click", () => {
     const root = document.documentElement;
     const dark = root.dataset.theme ? root.dataset.theme === "dark"
@@ -242,6 +289,7 @@
     root.dataset.theme = dark ? "light" : "dark";
   });
 
+  // --- runner suite chips ---
   const STAGES = ["Deploy", "Win11", "WS2016", "WS2012", "AdminPortal", "RADIUS", "macOS"];
   const chipG = $("#suiteChips");
   const chips = STAGES.map((name, i) => {
@@ -258,10 +306,11 @@
     return { r, s };
   });
 
-  const nodeIds = ["n_slack","n_claude","n_mcp","n_runner","n_t1","n_t2","n_t3","n_t4","n_report","n_slack_out"];
-  const mcpChips = ["c_nightly","c_suite","c_job","c_report","c_hw","c_api","c_guard"];
+  // --- helpers ---
+  const nodeIds = ["n_slack","n_claude","n_mcp","n_runner","n_t1","n_t2","n_t3","n_t4","n_report","n_slack_out","n_ai","n_kb","n_dec","n_jira"];
+  const mcpChips = ["c_nightly","c_suite","c_job","c_report","c_hw","c_api","c_guard","p_env","p_bug"];
   const wireIds = ["w_slack_bot","w_claude_mcp","w_mcp_runner","w_runner_t1","w_runner_t2","w_runner_t3",
-                   "w_runner_t4","w_runner_report","w_report_slack","w_progress","w_report_mcp","w_slack_user"];
+                   "w_runner_t4","w_runner_report","w_report_slack","w_progress","w_report_mcp","w_report_ai","w_ai_kb","w_kb_dec","w_dec_jira"];
 
   function setOn(ids, on) { ids.forEach((id) => { const e = document.getElementById(id); if (e) e.classList.toggle("on", on); }); }
   function clearAll() {
@@ -271,6 +320,7 @@
     ["m1","m2","m3","m4"].forEach((id) => document.getElementById(id).classList.remove("show"));
   }
 
+  // --- packets travelling along wires ---
   let packets = [];
   function sendPackets(wires, slackColor) {
     wires.forEach((id, k) => {
@@ -296,11 +346,13 @@
   }
   requestAnimationFrame(tick);
 
+  // --- timers owned by a step ---
   let timers = [];
   const later = (fn, ms) => timers.push(setTimeout(fn, reduce ? 0 : ms));
   function clearTimers() { timers.forEach(clearTimeout); timers = []; }
 
   function runSuites(withRetry) {
+    // 示意：依序把 7 個區塊跑過去，第 3 個示範「失敗重試後通過」
     STAGES.forEach((_, i) => {
       later(() => {
         chips[i].r.setAttribute("class", "chip run"); chips[i].s.textContent = "執行中…";
@@ -315,6 +367,7 @@
                   $("#runnerStat").textContent = "全部區塊完成"; }, 600 + STAGES.length * 900);
   }
 
+  // --- steps ---
   const STEPS = [
     { title: "1　一句話觸發",
       desc: "在 Slack 對機器人說「下班測試」，或在 Claude Code 說「Run nightly」。兩個入口共用同一支啟動函式，行為一致。",
@@ -352,14 +405,24 @@
     { title: "7　結果通知到 Slack",
       desc: "最終報告以分區格式發到 Slack：總通過數、各區塊結果，以及失敗的 suite 與 TC。使用者不必守在電腦前，隔天打開 Slack 就看得到。",
       tags: ["Slack Block Kit 報告", "失敗 suite／TC", "gtid_nightly_status"],
-      enter() { setOn(["n_report","n_slack_out","n_slack","w_report_slack","w_slack_user"], true);
-                sendPackets(["w_report_slack","w_slack_user"], true);
+      enter() { setOn(["n_report","n_slack_out","n_slack","w_report_slack"], true);
+                sendPackets(["w_report_slack"], true);
                 ["m1","m2","m3"].forEach((id) => document.getElementById(id).classList.add("show"));
                 later(() => document.getElementById("m4").classList.add("show"), 900);
                 chips.forEach((c) => { c.r.setAttribute("class", "chip ok"); c.s.textContent = "✓"; });
                 chips[2].r.setAttribute("class", "chip warn"); chips[2].s.textContent = "重試 ✓"; } },
+    { title: "8　有失敗？先自動分析原因",
+      desc: "報告裡有失敗的 suite 時，Claude 先讀失敗項與服務、MFA Server log，再查 gotrust-kb 知識庫（錯誤碼、設定項、FAQ、畫面文字），判斷這是環境問題還是產品行為不符。不用人先去翻 log。",
+      tags: ["gotrust-kb", "lookup_error_code", "search_knowledge", "服務 log／MFA log"],
+      enter() { setOn(["n_report","n_ai","n_kb","w_report_ai","w_ai_kb"], true); sendPackets(["w_report_ai","w_ai_kb"]); ["m1","m2","m3","m4"].forEach((id) => document.getElementById(id).classList.add("show")); } },
+    { title: "9　確認是 bug，才開 JIRA",
+      desc: "環境問題（例如手機離線、網路中斷）只回報原因、不開單；確認是產品 bug 才透過 JIRA MCP 建立票，附上 log 與截圖並指派 RD。修好後用同一批測試再驗證。",
+      tags: ["環境問題：不開單", "產品 bug：開 JIRA", "Atlassian MCP", "附 log／截圖"],
+      enter() { setOn(["n_ai","n_kb","n_dec","n_jira","w_kb_dec","w_dec_jira","p_bug"], true);
+                sendPackets(["w_kb_dec","w_dec_jira"]); ["m1","m2","m3","m4"].forEach((id) => document.getElementById(id).classList.add("show")); } },
   ];
 
+  // --- player ---
   let cur = 0, playing = true, advance = null;
   const STEP_MS = 6500;
   const dotsEl = $("#dots");
